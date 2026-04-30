@@ -192,6 +192,7 @@ lab/
 logs/
 models/
 data/raw/
+B23080229_金嘉俊_课程设计/
 *.zip
 demo_new.ps1
 pack_submit_new.ps1
