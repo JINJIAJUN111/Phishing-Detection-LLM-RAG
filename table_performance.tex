@@ -1,0 +1,17 @@
+
+\begin{table}[t]
+\centering
+\caption{Performance Comparison of Phishing Detection Methods}
+\label{tab:performance}
+\begin{tabular}{lccccccc}
+\toprule
+Method & Accuracy & Precision & Recall & F1-Score & p50 (ms) & p95 (ms) \\
+\midrule
+TF-IDF + LR      & 0.9539 & 0.9538 & 0.7848 & 0.8611 & 0    & 0 \\
+LLM-only         & 0.8963 & 0.9474 & 0.4557 & 0.6154 & 1758 & 2506 \\
+\textbf{LLM + RAG (Ours)} & \textbf{0.9608} & \textbf{0.9697} & \textbf{0.8101} & \textbf{0.8828} & 2096 & 3123 \\
+\midrule
+\multicolumn{7}{l}{\footnotesize \textit{Note}: Best results are bolded. RAG improves recall by 35.44 pp over LLM-only.} \\
+\bottomrule
+\end{tabular}
+\end{table}

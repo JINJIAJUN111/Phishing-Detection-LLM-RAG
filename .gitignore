@@ -1,0 +1,37 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# API Keys
+.env
+.env.local
+*.key
+
+# Logs
+*.log
+lab-docker/logs/
+
+# Large data (optional exclude)
+data/rag_index_local/
+data/screenshots/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Test
+TEST/
+temp/
+__pycache__/

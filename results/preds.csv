@@ -1,0 +1,2 @@
+url,model_name,is_phishing,confidence,suspected_brand,reasons,latency_ms,error
+https://example.com,placeholder,False,0.01,unknown,features extracted (classification not implemented yet),1040,
