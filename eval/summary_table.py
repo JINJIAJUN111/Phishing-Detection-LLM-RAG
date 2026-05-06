@@ -23,6 +23,7 @@ FILES = [
     ("TF-IDF + LR", BASE.parent / "data/predictions/mix_tfidf_lr_full.jsonl"),
     ("LLM-only", BASE.parent / "data/predictions/mix_llmonly_full.jsonl"),
     ("LLM + RAG (NoSelf)", BASE.parent / "data/predictions/mix_rag_noself_full.jsonl"),
+    ("LLM + RAG (Clean)", BASE.parent / "data/predictions/mix_rag_clean_noself_full.jsonl"),
     ("PhishLLM (MM baseline)", BASE.parent / "data/predictions/mix_phishllm_mm_full.jsonl"),
     ("Qwen-MM (img+text)", BASE.parent / "data/predictions/mix_qwen_mm_full.jsonl"),
 ]
@@ -93,10 +94,11 @@ print(fmt_sep)
 print_rows(rows)
 print("=" * 110)
 print("核心结论：")
-print("  1. 综合性能最优：LLM + RAG (NoSelf) 取得最高 F1 (0.8828) 和召回率 (81.01%)，显著优于纯 LLM (F1=0.6154, Rec=45.57%)")
-print("  2. 多模态方法：PhishLLM 与 Qwen-MM 均实现零误报 (Prec=100%)，但召回率偏低 (~61-62%)，偏保守")
-print("  3. 延迟开销：RAG 比 LLM-only 慢 338ms (p50)，多模态比 RAG 慢 109-354ms")
-print("  4. 结论：RAG 在文本模态上带来的收益明显大于多模态（截图）带来的收益")
+print("  1. 综合性能最优（含label）：LLM + RAG (NoSelf) 取得最高 F1 (0.8828) 和召回率 (81.01%)，显著优于纯 LLM")
+print("  2. 去除label泄露后：LLM + RAG (Clean) F1=0.7244，比含label版本低 0.1584，证实label泄露显著影响了性能估计")
+print("  3. 多模态方法：PhishLLM 与 Qwen-MM 均实现零误报 (Prec=100%)，但召回率偏低 (~61%)，偏保守")
+print("  4. 延迟开销：RAG 比 LLM-only 慢 338ms (p50)，多模态比 RAG 慢 109-354ms")
+print("  5. 结论：去除label泄露后 RAG Clean (F1=0.7244) 仍优于 LLM-only (F1=0.6154)，URL相似性检索仍有贡献")
 print("=" * 110)
 
 # ============================================================
@@ -119,7 +121,7 @@ print("=" * 110)
 # ============================================================
 # 表3：同模态对比（纯文本方法）
 # ============================================================
-TEXT_METHODS = {"TF-IDF + LR", "LLM-only", "LLM + RAG (NoSelf)"}
+TEXT_METHODS = {"TF-IDF + LR", "LLM-only", "LLM + RAG (NoSelf)", "LLM + RAG (Clean)"}
 text_rows = [r for r in rows if r["name"] in TEXT_METHODS]
 
 print("\n" + "=" * 110)
@@ -130,4 +132,5 @@ print(fmt_sep)
 print_rows(text_rows)
 print("=" * 110)
 print("注：该子表仅对比纯文本方法，输入均为 URL、标题、文本片段和表单特征。")
+print("    LLM + RAG (Clean) 为去除 label 泄露后的修正版，Prompt 中不暴露参考条目的 label 字段。")
 print("=" * 110)
