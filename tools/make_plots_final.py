@@ -32,26 +32,26 @@ Path("results").mkdir(exist_ok=True)
 
 # -----------------------------
 # Metrics (from your summary_table output)
-# 统一命名：LLM + RAG (NoSelf)
+# 更新为 clean 版本数据
 # -----------------------------
 methods = [
     "TF-IDF + LR",
     "LLM-only",
-    "LLM + RAG (NoSelf)",
-    "PhishLLM (Text-Only)",
+    "LLM + RAG (NoSelf, clean)",
+    "PhishLLM (MM baseline)",
     "Qwen-MM (img+text)",
 ]
 
-acc = [0.9539, 0.8963, 0.9608, 0.9309, 0.9286]
-prec = [0.9538, 0.9474, 0.9697, 1.0000, 1.0000]
-rec = [0.7848, 0.4557, 0.8101, 0.6203, 0.6076]
-f1 = [0.8611, 0.6154, 0.8828, 0.7656, 0.7559]
+acc = [0.9539, 0.8963, 0.9217, 0.9309, 0.9286]
+prec = [0.9538, 0.9474, 0.9787, 1.0000, 1.0000]
+rec = [0.7848, 0.4557, 0.5823, 0.6203, 0.6076]
+f1 = [0.8611, 0.6154, 0.7302, 0.7656, 0.7559]
 
 # Latency (ms) - only methods that call LLM
-lat_methods = ["LLM-only", "LLM + RAG (NoSelf)", "PhishLLM (Text-Only)", "Qwen-MM (img+text)"]
-lat_mean = [1789.9, 2186.3, 2298.5, 2556.5]
-lat_p50 = [1758, 2096, 2205, 2450]
-lat_p95 = [2506, 3123, 3240, 3380]
+lat_methods = ["LLM-only", "LLM + RAG (NoSelf, clean)", "PhishLLM (MM baseline)", "Qwen-MM (img+text)"]
+lat_mean = [1789.9, 850.1, 2298.5, 2556.5]
+lat_p50 = [1758, 762, 2205, 2450]
+lat_p95 = [2506, 949, 3240, 3380]
 
 # -----------------------------
 # Colors (academic, colorblind-friendly)
@@ -142,7 +142,7 @@ for b in bars_f:
 # Annotation: LLM-only -> RAG recall improvement
 try:
     i_llm = methods.index("LLM-only")
-    i_rag = methods.index("LLM + RAG (NoSelf)")
+    i_rag = methods.index("LLM + RAG (NoSelf, clean)")
     delta_pp = (rec[i_rag] - rec[i_llm]) * 100.0
 
     y_start = rec[i_llm]
@@ -258,10 +258,10 @@ fig.savefig("results/Figure4_Multimodal_Fair_Comparison.png", dpi=300)
 plt.close(fig)
 
 print("=" * 60)
-print("✅ 四张图表已生成，保存在 results/ 目录：")
+print("Four figures generated in results/ directory:")
 print("=" * 60)
-print(" - Figure1_Performance_AllMethods.png      (综合性能对比)")
-print(" - Figure2_Recall_F1_AllMethods.png        (召回率与F1对比)")
-print(" - Figure3_Latency_AllMethods.png          (延迟对比)")
-print(" - Figure4_Multimodal_Fair_Comparison.png  (多模态公平对比)")
+print(" - Figure1_Performance_AllMethods.png      (Performance comparison)")
+print(" - Figure2_Recall_F1_AllMethods.png        (Recall & F1 comparison)")
+print(" - Figure3_Latency_AllMethods.png          (Latency comparison)")
+print(" - Figure4_Multimodal_Fair_Comparison.png  (Multimodal fair comparison)")
 print("=" * 60)

@@ -21,7 +21,6 @@ def _safe_str(x) -> str:
 def make_doc_text(row: dict) -> str:
     parts = []
     parts.append(f"URL: {_safe_str(row.get('final_url')) or _safe_str(row.get('url'))}")
-    parts.append(f"LABEL: {int(row.get('label', 0))}")
 
     title = _safe_str(row.get("title")).strip()
     if title:

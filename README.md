@@ -15,9 +15,9 @@
 ### 1.2 方法列表（5种）
 1. **TF-IDF + Logistic Regression**（传统机器学习基线）
 2. **LLM-only**（纯文本 LLM 基线）
-3. **PhishLLM (Text-Only)**（参考 USENIX Security 2024 的纯文本基线）
-4. **Qwen-MM (Multimodal)**（多模态基线：文本 + 页面截图）
-5. **LLM + RAG (NoSelf)**（本文核心方案：纯文本 + 检索增强生成）
+3. **PhishLLM (MM baseline)**（参考 USENIX Security 2024 的多模态基线）
+4. **Qwen-MM (img+text)**（多模态基线：文本 + 页面截图）
+5. **LLM + RAG (NoSelf, clean)**（本文核心方案：纯文本 + 检索增强生成）
 
 > 注：多模态方法依赖网页截图；本实验截图覆盖率为 `424/434 = 97.7%`，无截图样本会自动退化为文本推理。
 
@@ -105,7 +105,7 @@ powershell -File demo.ps1
 
 ### 6.1 单个预测文件评测
 ```powershell
-python eval/evaluate.py --preds data/predictions/mix_rag_noself_full.jsonl
+python eval/evaluate.py --preds data/predictions/mix_rag_noself_clean_full.jsonl
 ```
 
 脚本输出包含：
@@ -120,8 +120,8 @@ python eval/summary_table.py
 
 输出包含三部分：
 1. **总体对比表（5种方法）**
-2. **同模态对比（多模态：Qwen-MM）**
-3. **同模态对比（纯文本：TF-IDF / LLM-only / PhishLLM / RAG）**
+2. **同模态对比（多模态：PhishLLM / Qwen-MM）**
+3. **同模态对比（纯文本：TF-IDF / LLM-only / RAG）**
 
 ---
 
@@ -135,7 +135,7 @@ python tools/make_plots_final.py
 - `results/Figure1_Performance_AllMethods.png`
 - `results/Figure2_Recall_F1_AllMethods.png`
 - `results/Figure3_Latency_AllMethods.png`
-- `results/Figure4_Modality_Comparison.png`
+- `results/Figure4_Multimodal_Fair_Comparison.png`
 
 ---
 
@@ -224,7 +224,7 @@ docker stop phishing-lab
 - iframe页面：`http://localhost:8080/phish/iframe_phish.html`
 
 ### Q5：PhishLLM 是什么模态？
-PhishLLM 是纯文本模型（参考 USENIX Security 2024），本文将其作为纯文本基线使用。
+PhishLLM 原本是纯文本模型（参考 USENIX Security 2024），本实验将其扩展为多模态基线（MM baseline），使用文本+截图输入。
 
 ---
 
@@ -234,11 +234,11 @@ PhishLLM 是纯文本模型（参考 USENIX Security 2024），本文将其作�
 |------|--------|----------|
 | TF-IDF + LR | 0.7848 | 0.8611 |
 | LLM-only | 0.4557 | 0.6154 |
-| PhishLLM (Text-Only) | 0.6203 | 0.7656 |
-| Qwen-MM (Multimodal) | 0.6076 | 0.7559 |
-| **LLM + RAG (Ours)** | **0.8101** | **0.8828** |
+| PhishLLM (MM baseline) | 0.6203 | 0.7656 |
+| Qwen-MM (img+text) | 0.6076 | 0.7559 |
+| **LLM + RAG (NoSelf, clean)** | **0.5823** | **0.7302** |
 
-LLM+RAG 方案相比 LLM-only，召回率提升 35.44 个百分点，F1 提升 0.2674，验证了检索增强的有效性。
+注：clean版本移除了自引用样本，F1从0.8828降至0.7302，但实验更加严格。LLM+RAG相比LLM-only，召回率仍提升12.66个百分点。
 
 ---
 

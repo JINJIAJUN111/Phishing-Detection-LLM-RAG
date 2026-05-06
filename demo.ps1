@@ -14,7 +14,7 @@ Write-Host "[1/5] Checking prediction files..." -ForegroundColor Yellow
 $files = @(
     ".\data\predictions\mix_tfidf_lr_full.jsonl",
     ".\data\predictions\mix_llmonly_full.jsonl",
-    ".\data\predictions\mix_rag_noself_full.jsonl",
+    ".\data\predictions\mix_rag_noself_clean_full.jsonl",
     ".\data\predictions\mix_phishllm_mm_full.jsonl",
     ".\data\predictions\mix_qwen_mm_full.jsonl"
 )
@@ -62,7 +62,7 @@ $charts = @(
     "Figure1_Performance_AllMethods.png",
     "Figure2_Recall_F1_AllMethods.png",
     "Figure3_Latency_AllMethods.png",
-    "Figure4_Modality_Comparison.png"
+    "Figure4_Multimodal_Fair_Comparison.png"
 )
 
 foreach ($c in $charts) {
@@ -132,19 +132,19 @@ Write-Host "  Method                    | Recall | F1-Score | Modality" -Foregro
 Write-Host "  ======================================================" -ForegroundColor Gray
 Write-Host "  TF-IDF + LR               | 0.7848 | 0.8611   | Features" -ForegroundColor Gray
 Write-Host "  LLM-only                  | 0.4557 | 0.6154   | Text" -ForegroundColor Gray
-Write-Host "  PhishLLM (Text-Only)      | 0.6203 | 0.7656   | Text" -ForegroundColor Gray
-Write-Host "  Qwen-MM (Multimodal)      | 0.6076 | 0.7559   | Text+Image" -ForegroundColor Gray
-Write-Host "  LLM + RAG (Ours)          | 0.8101 | 0.8828   | Text+RAG" -ForegroundColor Green
+Write-Host "  PhishLLM (MM baseline)    | 0.6203 | 0.7656   | Text+Image" -ForegroundColor Gray
+Write-Host "  Qwen-MM (img+text)        | 0.6076 | 0.7559   | Text+Image" -ForegroundColor Gray
+Write-Host "  LLM + RAG (NoSelf, clean) | 0.5823 | 0.7302   | Text+RAG" -ForegroundColor Green
 Write-Host "  ======================================================" -ForegroundColor Gray
 Write-Host ""
 
 # --- Conclusion ---
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "CONCLUSION:" -ForegroundColor White
-Write-Host "  Our LLM+RAG method achieves best F1=0.8828" -ForegroundColor Green
-Write-Host "  Improvement over PhishLLM (Text-Only): +11.7%" -ForegroundColor Green
-Write-Host "  Improvement over Qwen-MM (Multimodal): +12.7%" -ForegroundColor Green
-Write-Host "  Improvement over LLM-only (Recall): +35.44 pp" -ForegroundColor Green
+Write-Host "  TF-IDF+LR achieves best F1=0.8611 (traditional baseline)" -ForegroundColor Green
+Write-Host "  LLM+RAG (clean) F1=0.7302, Recall improved +12.66 pp vs LLM-only" -ForegroundColor Green
+Write-Host "  Clean version removes self-reference samples for stricter evaluation" -ForegroundColor Green
+Write-Host "  Multimodal methods (PhishLLM/Qwen-MM) achieve high precision but lower recall" -ForegroundColor Green
 Write-Host "  QR + Iframe pages deployed for multimodal extension" -ForegroundColor Green
 Write-Host "  Access logs: real-time recording via Docker container logs" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan

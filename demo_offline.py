@@ -143,7 +143,7 @@ def find_predictions_dir() -> Path | None:
     for p in unique_candidates:
         if p.exists() and p.is_dir():
             # 检查是否包含关键文件
-            required = ["mix_tfidf_lr_full.jsonl", "mix_llmonly_full.jsonl", "mix_rag_noself_full.jsonl", "mix_phishllm_mm_full.jsonl"]
+            required = ["mix_tfidf_lr_full.jsonl", "mix_llmonly_full.jsonl", "mix_rag_noself_clean_full.jsonl", "mix_phishllm_mm_full.jsonl"]
             if all((p / f).exists() for f in required):
                 return p
 
@@ -181,7 +181,7 @@ def main() -> int:
     files = [
         ("TF-IDF + LR", pred_dir / "mix_tfidf_lr_full.jsonl"),
         ("LLM-only", pred_dir / "mix_llmonly_full.jsonl"),
-        ("LLM + RAG (NoSelf)", pred_dir / "mix_rag_noself_full.jsonl"),
+        ("LLM + RAG (NoSelf, clean)", pred_dir / "mix_rag_noself_clean_full.jsonl"),
         ("PhishLLM (MM baseline)", pred_dir / "mix_phishllm_mm_full.jsonl"),
     ]
 
@@ -236,7 +236,7 @@ def main() -> int:
 
     # 输出核心结论
     llm = next(r for r in rows if r["name"] == "LLM-only")
-    rag = next(r for r in rows if r["name"] == "LLM + RAG (NoSelf)")
+    rag = next(r for r in rows if r["name"] == "LLM + RAG (NoSelf, clean)")
     lr = next(r for r in rows if r["name"] == "TF-IDF + LR")
     mm = next(r for r in rows if r["name"] == "PhishLLM (MM baseline)")
 
@@ -247,16 +247,18 @@ def main() -> int:
     print("=" * 60)
     print("核心结论")
     print("=" * 60)
-    print(f"LLM + RAG (NoSelf) 相比 LLM-only：")
+    print(f"LLM + RAG (NoSelf, clean) 相比 LLM-only：")
     print(f"  - 召回率 (Recall) : {llm['rec'] * 100:.2f}% -> {rag['rec'] * 100:.2f}% ({recall_gain_pp:+.2f} pp)")
     print(f"  - F1 分数          : {llm['f1']:.4f} -> {rag['f1']:.4f} ({f1_gain:+.4f})")
-    print(f"  - 优于传统 TF-IDF+LR (F1={lr['f1']:.4f})")
+    print(f"  - 注：clean版本移除自引用样本，评估更严格")
     print(f"  - 延迟代价：p50 {llm['p50']}ms -> {rag['p50']}ms ({latency_gain:+.0f}ms)")
     print()
     print(f"PhishLLM (MM baseline) 结果：")
     print(f"  - 准确率: {mm['acc']:.4f}")
     print(f"  - 召回率: {mm['rec']*100:.2f}%")
     print(f"  - F1分数: {mm['f1']:.4f}")
+    print()
+    print(f"TF-IDF + LR (传统基线) 仍保持最高 F1={lr['f1']:.4f}")
     print("=" * 60)
     print()
     print("演示完成。")

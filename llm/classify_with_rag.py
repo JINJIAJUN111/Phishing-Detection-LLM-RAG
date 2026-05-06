@@ -29,6 +29,13 @@ PROMPT = """你是网络安全方向的检测助手。给定一个网页的证�
 {refs}
 """
 
+def _safe_str(x) -> str:
+    if x is None:
+        return ""
+    # pandas NaN: float and x!=x
+    if isinstance(x, float) and x != x:
+        return ""
+    return str(x)
 
 def load_index(index_dir: str):
     idx = faiss.read_index(str(Path(index_dir) / "index.faiss"))
@@ -68,9 +75,10 @@ def call_llm_json(client: OpenAI, model: str, prompt: str) -> dict:
 
 
 def make_evidence_text(r: dict, max_text_chars: int) -> str:
-    url = r.get("final_url") or r.get("url")
-    title = r.get("title") or ""
-    text = (r.get("text_snippet") or "")[:max_text_chars]
+    url = _safe_str(r.get("final_url") or r.get("url"))
+    title = _safe_str(r.get("title"))
+    text = _safe_str(r.get("text_snippet"))[:max_text_chars]
+
     feats = (
         f"form_count={r.get('form_count')} "
         f"has_password_input={r.get('has_password_input')} "
@@ -78,7 +86,6 @@ def make_evidence_text(r: dict, max_text_chars: int) -> str:
         f"external_form_action={r.get('external_form_action')}"
     )
     return f"URL: {url}\nTITLE: {title}\nTEXT: {text}\nFEATURES: {feats}"
-
 
 def main():
     ap = argparse.ArgumentParser()
@@ -107,9 +114,33 @@ def main():
     outp = Path(args.out)
     outp.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(outp, "w", encoding="utf-8") as f:
+    # --------- 断点续跑：读取已完成的 url ---------
+    done_urls = set()
+    if outp.exists() and outp.stat().st_size > 0:
+        with open(outp, "r", encoding="utf-8") as rf:
+            for line in rf:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    j = json.loads(line)
+                    u = j.get("url")
+                    if u:
+                        done_urls.add(u)
+                except Exception:
+                    # 如果尾部有半行坏行，不影响续跑
+                    pass
+
+    mode = "a" if done_urls else "w"
+    print(f"Resume mode: {mode}, done={len(done_urls)} samples")
+
+    with open(outp, mode, encoding="utf-8") as f:
         for _, row in df.iterrows():
             rowd = row.to_dict()
+            url = rowd.get("url")
+            if url in done_urls:
+                continue
+
             evidence_text = make_evidence_text(rowd, max_text_chars=args.max_text_chars)
 
             qv = embed_query(client, evidence_text, embed_model=args.embed_model)
@@ -119,20 +150,28 @@ def main():
             for ref_idx in I[0].tolist():
                 if 0 <= ref_idx < len(meta):
                     m = meta[ref_idx]
-                    refs_lines.append(f"ref_idx={ref_idx} url={m.get('url')} label={m.get('label')}")
+                    refs_lines.append(f"ref_idx={ref_idx} url={m.get('url')}")
             refs_text = "\n".join(refs_lines) if refs_lines else "(none)"
+            if "label=" in refs_text:
+                raise RuntimeError("Leakage detected: refs_text contains label=")
 
             prompt = PROMPT.format(evidence=evidence_text, refs=refs_text)
-            out_json = call_llm_json(client, model=args.model, prompt=prompt)
+
+            try:
+                out_json = call_llm_json(client, model=args.model, prompt=prompt)
+            except Exception as e:
+                # 如果额度/网络失败，先落盘错误，便于续跑与排查
+                out_json = {"error": str(e)}
 
             rec = {
-                "url": rowd.get("url"),
+                "url": url,
                 "label": int(rowd.get("label", 0)),
                 "llm_out": out_json,
                 "topk_indices": I[0].tolist(),
                 "topk_scores": [float(x) for x in D[0].tolist()],
             }
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            f.flush()
 
     print(f"Saved → {outp}")
 

@@ -22,7 +22,7 @@ EVAL = BASE / "evaluate.py"
 FILES = [
     ("TF-IDF + LR", BASE.parent / "data/predictions/mix_tfidf_lr_full.jsonl"),
     ("LLM-only", BASE.parent / "data/predictions/mix_llmonly_full.jsonl"),
-    ("LLM + RAG (NoSelf)", BASE.parent / "data/predictions/mix_rag_noself_full.jsonl"),
+    ("LLM + RAG (NoSelf, clean)", BASE.parent / "data/predictions/mix_rag_noself_clean_full.jsonl"),
     ("PhishLLM (MM baseline)", BASE.parent / "data/predictions/mix_phishllm_mm_full.jsonl"),
     ("Qwen-MM (img+text)", BASE.parent / "data/predictions/mix_qwen_mm_full.jsonl"),
 ]
@@ -92,11 +92,19 @@ print(fmt_header)
 print(fmt_sep)
 print_rows(rows)
 print("=" * 110)
+
+# 动态生成核心结论
+best = max(rows, key=lambda r: float(r["f1"]))
+llm_only = next((r for r in rows if r["name"] == "LLM-only"), None)
 print("核心结论：")
-print("  1. 综合性能最优：LLM + RAG (NoSelf) 取得最高 F1 (0.8828) 和召回率 (81.01%)，显著优于纯 LLM (F1=0.6154, Rec=45.57%)")
-print("  2. 多模态方法：PhishLLM 与 Qwen-MM 均实现零误报 (Prec=100%)，但召回率偏低 (~61-62%)，偏保守")
-print("  3. 延迟开销：RAG 比 LLM-only 慢 338ms (p50)，多模态比 RAG 慢 109-354ms")
-print("  4. 结论：RAG 在文本模态上带来的收益明显大于多模态（截图）带来的收益")
+print(f"  1. 综合性能最优：{best['name']} 取得最高 F1 ({float(best['f1']):.4f}) 和召回率 ({float(best['rec'])*100:.2f}%)"
+      + (f"，显著优于纯 LLM (F1={float(llm_only['f1']):.4f}, Rec={float(llm_only['rec'])*100:.2f}%)" if llm_only else ""))
+mm_rows_all = [r for r in rows if r["name"] in {"PhishLLM (MM baseline)", "Qwen-MM (img+text)"}]
+if mm_rows_all:
+    precs = [float(r["prec"]) for r in mm_rows_all]
+    recs = [float(r["rec"]) for r in mm_rows_all]
+    print(f"  2. 多模态方法：PhishLLM 与 Qwen-MM Prec={min(precs):.4f}~{max(precs):.4f}，召回率 ({min(recs)*100:.1f}%~{max(recs)*100:.1f}%)，偏保守")
+print("  3. 结论：RAG 在文本模态上带来的收益明显大于多模态（截图）带来的收益")
 print("=" * 110)
 
 # ============================================================
@@ -119,7 +127,7 @@ print("=" * 110)
 # ============================================================
 # 表3：同模态对比（纯文本方法）
 # ============================================================
-TEXT_METHODS = {"TF-IDF + LR", "LLM-only", "LLM + RAG (NoSelf)"}
+TEXT_METHODS = {"TF-IDF + LR", "LLM-only", "LLM + RAG (NoSelf, clean)"}
 text_rows = [r for r in rows if r["name"] in TEXT_METHODS]
 
 print("\n" + "=" * 110)

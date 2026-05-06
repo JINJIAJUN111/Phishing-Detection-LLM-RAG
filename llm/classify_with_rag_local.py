@@ -80,7 +80,7 @@ def make_evidence_text(row: dict) -> str:
 
 def build_prompt(evidence_text: str, refs: list[dict]) -> str:
     ref_block = "\n\n".join(
-        [f"[REF {i}] url={r.get('url','')} label={r.get('label','')}" for i, r in enumerate(refs)]
+        [f"[REF {i}] url={r.get('url', '')}" for i, r in enumerate(refs)]
     )
     return f"""You are a phishing website detector.
 Decide if the target URL is phishing (1) or benign (0).
