@@ -62,7 +62,8 @@ $charts = @(
     "Figure1_Performance_AllMethods.png",
     "Figure2_Recall_F1_AllMethods.png",
     "Figure3_Latency_AllMethods.png",
-    "Figure4_Multimodal_Fair_Comparison.png"
+    "Figure4_Multimodal_Fair_Comparison.png",
+    "Figure5_TextOnly_Comparison.png"
 )
 
 foreach ($c in $charts) {

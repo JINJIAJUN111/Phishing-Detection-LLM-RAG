@@ -34,7 +34,7 @@
 │   ├── evidence/              # 证据文件（CSV）
 │   └── predictions/           # 预测结果（5个jsonl）
 ├── lab-docker/                # 靶场环境（Docker + Nginx + HTML）
-├── results/                   # 输出表格与图表（Figure1-4）
+├── results/                   # 输出表格与图表（Figure1-5 + table）
 │   └── screenshots/           # 靶场页面截图（用于报告）
 ├── report/                    # 课程设计报告（docx/pdf）
 ├── demo.ps1                   # 验收演示脚本
@@ -96,8 +96,8 @@ powershell -File demo.ps1
 ```
 
 输出：
-- `results/summary_table.txt`
-- `results/Figure1_*.png` ~ `results/Figure4_*.png`
+- `results/summary_table.txt` - 性能对比表
+- `results/Figure1_*.png` ~ `results/Figure5_*.png` - 对比图表
 
 ---
 
@@ -125,17 +125,37 @@ python eval/summary_table.py
 
 ---
 
-## 7. 生成论文图表（Figure 1–4）
+## 7. 生成论文图表（Figure 1–5）
 
+### 7.1 一键生成所有图表（推荐）
+```powershell
+python tools/generate_all_figures.py
+```
+
+生成所有图表：
+- `results/Figure1_Performance_AllMethods.png` - 综合性能对比（Acc/Prec/Rec/F1）
+- `results/Figure2_Recall_F1_AllMethods.png` - 召回率与F1对比
+- `results/Figure3_Latency_AllMethods.png` - 推理延迟对比
+- `results/Figure4_Multimodal_Fair_Comparison.png` - 多模态方法公平对比
+- `results/Figure5_TextOnly_Comparison.png` - 纯文本方法对比
+- `results/table_performance.png` - 性能对比表格
+
+### 7.2 单独生成各图表
+
+生成所有方法对比图（Figure 1-4）：
 ```powershell
 python tools/make_plots_final.py
 ```
 
-生成：
-- `results/Figure1_Performance_AllMethods.png`
-- `results/Figure2_Recall_F1_AllMethods.png`
-- `results/Figure3_Latency_AllMethods.png`
-- `results/Figure4_Multimodal_Fair_Comparison.png`
+生成纯文本方法对比图（Figure 5）：
+```powershell
+python tools/make_figure5_textonly.py
+```
+
+生成表格图：
+```powershell
+python draw_table.py
+```
 
 ---
 
