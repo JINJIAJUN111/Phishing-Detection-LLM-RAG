@@ -16,7 +16,7 @@
 1. **TF-IDF + Logistic Regression**（传统机器学习基线）
 2. **LLM-only**（纯文本 LLM 基线）
 3. **PhishLLM (MM baseline)**（参考 USENIX Security 2024 的多模态基线）
-4. **Qwen-MM (img+text)**（多模态基线：文本 + 页面截图）
+4. **Qwen-MM (Screenshot)**（多模态消融：页面标题 + 截图，无全文文本）
 5. **LLM + RAG (NoSelf, clean)**（本文核心方案：纯文本 + 检索增强生成）
 
 > 注：多模态方法依赖网页截图；本实验截图覆盖率为 `424/434 = 97.7%`，无截图样本会自动退化为文本推理。
@@ -32,10 +32,9 @@
 ├── tools/                     # 画图、检查等辅助脚本
 ├── data/
 │   ├── evidence/              # 证据文件（CSV）
-│   └── predictions/           # 预测结果（5个jsonl）
+│   └── predictions/           # 预测结果（23个jsonl，含各方法各配置）
 ├── lab-docker/                # 靶场环境（Docker + Nginx + HTML）
 ├── results/                   # 输出表格与图表（Figure1-5 + table）
-│   └── screenshots/           # 靶场页面截图（用于报告）
 ├── report/                    # 课程设计报告（docx/pdf）
 ├── demo.ps1                   # 验收演示脚本
 ├── requirements.txt           # Python 依赖
@@ -190,15 +189,10 @@ docker stop phishing-lab
 | Bank钓鱼 | `http://localhost:8080/phish/bank/` | 传统钓鱼 | 仿银行登录页 |
 | 良性新闻 | `http://localhost:8080/benign/news/` | 正常 | 真实新闻内容 |
 | **二维码钓鱼** | `http://localhost:8080/phish/outlook/qr_login.html` | 多模态扩展 | 诱导扫码验证 |
+| **二维码捕获页** | `http://localhost:8080/phish/qr_caught.html` | 多模态扩展 | 模拟扫码后被捕获的页面 |
 | **iframe嵌套钓鱼** | `http://localhost:8080/phish/iframe_phish.html` | 多模态扩展 | 隐藏地址栏欺骗 |
 
-> 二维码和iframe页面用于验证多模态方法对新型钓鱼攻击的检测能力。
-
-### 8.2 靶场页面截图
-
-多模态扩展页面截图保存在 `results/screenshots/` 目录下：
-- `qr_page.png`：二维码钓鱼页面
-- `iframe_page.png`：iframe嵌套钓鱼页面
+二维码捕获页及相关二维码图片（`lab-docker/site/qrcodes/`）用于演示二维码钓鱼的完整攻击链。
 
 ---
 
@@ -233,14 +227,16 @@ docker stop phishing-lab
 能。评测与画图只依赖 `data/predictions/*.jsonl`，提交包已包含这些文件。
 
 ### Q2：为什么多模态方法 Precision=1.0 但 Recall 偏低？
-这说明模型在当前提示词/阈值设定下偏保守：几乎不误报（FP≈0），但会漏报部分钓鱼样本（FN较多）。报告中需结合混淆矩阵或召回率进行分析。
+
+这说明模型在当前提示词/阈值设定下偏保守：几乎不误报（FP≈0），但会漏报部分钓鱼样本（FN较多）。PhishLLM（全文+截图）召回率 62.0% 尚可，而 Qwen-MM（标题+截图）仅 32.9%，说明缺少全文文本对召回影响显著。报告中需结合混淆矩阵或召回率进行分析。
 
 ### Q3：截图数据太大怎么办？
 提交包默认提供证据 CSV 与预测结果，若完整截图体积过大可不打包；报告中说明截图覆盖率及无图退化策略即可。
 
 ### Q4：二维码和iframe页面如何访问？
 确保 Docker 容器运行后，在浏览器访问：
-- QR页面：`http://localhost:8080/phish/outlook/qr_login.html`
+- QR钓鱼页：`http://localhost:8080/phish/outlook/qr_login.html`
+- QR捕获页：`http://localhost:8080/phish/qr_caught.html`
 - iframe页面：`http://localhost:8080/phish/iframe_phish.html`
 
 ### Q5：PhishLLM 是什么模态？
@@ -250,15 +246,20 @@ PhishLLM 原本是纯文本模型（参考 USENIX Security 2024），本实验�
 
 ## 12. 核心实验结果
 
-| 方法 | Recall | F1-Score |
-|------|--------|----------|
-| TF-IDF + LR | 0.7848 | 0.8611 |
-| LLM-only | 0.4557 | 0.6154 |
-| PhishLLM (MM baseline) | 0.6203 | 0.7656 |
-| Qwen-MM (img+text) | 0.6076 | 0.7559 |
-| **LLM + RAG (NoSelf, clean)** | **0.5823** | **0.7302** |
+| 方法 | Recall | F1-Score | 模态 |
+|------|--------|----------|------|
+| TF-IDF + LR | 0.6329 | 0.7407 | 特征工程 |
+| LLM-only | 0.4557 | 0.6154 | 纯文本 |
+| PhishLLM (MM baseline) | 0.6203 | 0.7656 | 全文+截图 |
+| Qwen-MM (Screenshot) | 0.3291 | 0.4952 | 标题+截图（消融） |
+| **LLM + RAG (NoSelf, clean)** | **0.5823** | **0.7302** | 文本+RAG |
 
-注：clean版本移除了自引用样本，F1从0.8828降至0.7302，但实验更加严格。LLM+RAG相比LLM-only，召回率仍提升12.66个百分点。
+结论：
+- **综合最优**：PhishLLM 取得最高 F1 (0.7656) 和召回率 (62.03%)，显著优于纯 LLM (F1=0.6154)
+- **多模态 Precision**：PhishLLM 和 Qwen-MM 均达到 Prec=1.0000（无漏报），但召回率差异大（62.0% vs 32.9%）
+- **Qwen-MM 定位**：Qwen-MM 使用"标题+截图"而非全文输入，实际为多模态消融实验，召回率偏低属预期
+- **RAG 有效性**：LLM+RAG 相比 LLM-only，召回率提升 12.66 个百分点（45.57% → 58.23%），验证了检索增强的有效性
+- **clean 版本**：移除了自引用样本，评估更严格
 
 ---
 

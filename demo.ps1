@@ -131,10 +131,10 @@ Write-Host ""
 Write-Host "  ======================================================" -ForegroundColor Gray
 Write-Host "  Method                    | Recall | F1-Score | Modality" -ForegroundColor Gray
 Write-Host "  ======================================================" -ForegroundColor Gray
-Write-Host "  TF-IDF + LR               | 0.7848 | 0.8611   | Features" -ForegroundColor Gray
+Write-Host "  TF-IDF + LR               | 0.6329 | 0.7407   | Features" -ForegroundColor Gray
 Write-Host "  LLM-only                  | 0.4557 | 0.6154   | Text" -ForegroundColor Gray
 Write-Host "  PhishLLM (MM baseline)    | 0.6203 | 0.7656   | Text+Image" -ForegroundColor Gray
-Write-Host "  Qwen-MM (img+text)        | 0.6076 | 0.7559   | Text+Image" -ForegroundColor Gray
+Write-Host "  Qwen-MM (img+text)        | 0.3291 | 0.4952   | Text+Image" -ForegroundColor Gray
 Write-Host "  LLM + RAG (NoSelf, clean) | 0.5823 | 0.7302   | Text+RAG" -ForegroundColor Green
 Write-Host "  ======================================================" -ForegroundColor Gray
 Write-Host ""
@@ -142,10 +142,10 @@ Write-Host ""
 # --- Conclusion ---
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "CONCLUSION:" -ForegroundColor White
-Write-Host "  TF-IDF+LR achieves best F1=0.8611 (traditional baseline)" -ForegroundColor Green
+Write-Host "  PhishLLM achieves best F1=0.7656 (multimodal baseline)" -ForegroundColor Green
 Write-Host "  LLM+RAG (clean) F1=0.7302, Recall improved +12.66 pp vs LLM-only" -ForegroundColor Green
 Write-Host "  Clean version removes self-reference samples for stricter evaluation" -ForegroundColor Green
-Write-Host "  Multimodal methods (PhishLLM/Qwen-MM) achieve high precision but lower recall" -ForegroundColor Green
+Write-Host "  Multimodal: PhishLLM rec=62.03% (full text), Qwen-MM rec=32.91% (title only, ablation)" -ForegroundColor Green
 Write-Host "  QR + Iframe pages deployed for multimodal extension" -ForegroundColor Green
 Write-Host "  Access logs: real-time recording via Docker container logs" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan

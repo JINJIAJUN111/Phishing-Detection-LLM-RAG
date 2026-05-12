@@ -22,9 +22,9 @@ EVAL = BASE / "evaluate.py"
 FILES = [
     ("TF-IDF + LR", BASE.parent / "data/predictions/mix_tfidf_lr_full.jsonl"),
     ("LLM-only", BASE.parent / "data/predictions/mix_llmonly_full.jsonl"),
-    ("LLM + RAG (NoSelf, clean)", BASE.parent / "data/predictions/mix_rag_noself_clean_full.jsonl"),
-    ("PhishLLM (MM baseline)", BASE.parent / "data/predictions/mix_phishllm_mm_full.jsonl"),
-    ("Qwen-MM (img+text)", BASE.parent / "data/predictions/mix_qwen_mm_full.jsonl"),
+    ("LLM + RAG", BASE.parent / "data/predictions/mix_rag_noself_clean_full.jsonl"),
+    ("PhishLLM", BASE.parent / "data/predictions/mix_phishllm_mm_full.jsonl"),
+    ("Qwen-MM (Screenshot)", BASE.parent / "data/predictions/mix_qwen_mm_full.jsonl"),
 ]
 
 # 正则匹配
@@ -99,18 +99,18 @@ llm_only = next((r for r in rows if r["name"] == "LLM-only"), None)
 print("核心结论：")
 print(f"  1. 综合性能最优：{best['name']} 取得最高 F1 ({float(best['f1']):.4f}) 和召回率 ({float(best['rec'])*100:.2f}%)"
       + (f"，显著优于纯 LLM (F1={float(llm_only['f1']):.4f}, Rec={float(llm_only['rec'])*100:.2f}%)" if llm_only else ""))
-mm_rows_all = [r for r in rows if r["name"] in {"PhishLLM (MM baseline)", "Qwen-MM (img+text)"}]
+mm_rows_all = [r for r in rows if r["name"] in {"PhishLLM", "Qwen-MM (Screenshot)"}]
 if mm_rows_all:
     precs = [float(r["prec"]) for r in mm_rows_all]
     recs = [float(r["rec"]) for r in mm_rows_all]
     print(f"  2. 多模态方法：PhishLLM 与 Qwen-MM Prec={min(precs):.4f}~{max(precs):.4f}，召回率 ({min(recs)*100:.1f}%~{max(recs)*100:.1f}%)，偏保守")
-print("  3. 结论：RAG 在文本模态上带来的收益明显大于多模态（截图）带来的收益")
+print("  3. 多模态消融：Qwen-MM（仅标题+截图）召回率显著低于 PhishLLM（全量文本+截图），说明文本证据对多模态检测有重要增量贡献")
 print("=" * 110)
 
 # ============================================================
 # 表2：同模态对比（多模态方法）
 # ============================================================
-MM_METHODS = {"PhishLLM (MM baseline)", "Qwen-MM (img+text)"}
+MM_METHODS = {"PhishLLM", "Qwen-MM (Screenshot)"}
 mm_rows = [r for r in rows if r["name"] in MM_METHODS]
 
 print("\n" + "=" * 110)
@@ -120,14 +120,14 @@ print(fmt_header)
 print(fmt_sep)
 print_rows(mm_rows)
 print("=" * 110)
-print("注：该子表仅比较多模态方法（均使用文本证据 + 网页截图），用于与 PhishLLM 进行公平对比。")
+print("注：该子表比较多模态方法。PhishLLM 使用完整文本 + 截图；Qwen-MM 仅使用标题 + 截图（消融）。")
 print("    本实验截图覆盖率 424/434 = 97.7%，无图样本自动退化为文本推理。")
 print("=" * 110)
 
 # ============================================================
 # 表3：同模态对比（纯文本方法）
 # ============================================================
-TEXT_METHODS = {"TF-IDF + LR", "LLM-only", "LLM + RAG (NoSelf, clean)"}
+TEXT_METHODS = {"TF-IDF + LR", "LLM-only", "LLM + RAG"}
 text_rows = [r for r in rows if r["name"] in TEXT_METHODS]
 
 print("\n" + "=" * 110)

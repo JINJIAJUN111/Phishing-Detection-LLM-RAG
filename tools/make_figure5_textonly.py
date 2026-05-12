@@ -35,11 +35,11 @@ Path("results").mkdir(exist_ok=True)
 text_methods = [
     "TF-IDF + LR",
     "LLM-only",
-    "LLM + RAG\n(NoSelf, clean)"
+    "LLM + RAG",
 ]
 
-text_rec = [0.7848, 0.4557, 0.5823]
-text_f1 = [0.8611, 0.6154, 0.7302]
+text_rec = [0.6329, 0.4557, 0.5823]
+text_f1 = [0.7407, 0.6154, 0.7302]
 
 # Colors
 C_REC = "#55A868"  # green

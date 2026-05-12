@@ -63,17 +63,16 @@ def extract_json(text: str) -> dict:
 # --- 核心逻辑 ---
 def build_prompt(row: dict) -> str:
     """
-    构建 Prompt。
-    注意：为了防止乱码，这里强制使用英文指令，并要求模型输出英文理由。
+    构建 Prompt（最少文本版本）。
+    仅保留 URL 和 Title 作为截图上下文的标识，
+    用于消融实验：仅靠截图 + 标题能否判断钓鱼页面。
     """
     url = str(row.get("url", ""))
     title = str(row.get("title", ""))
-    snippet = str(row.get("text_snippet", row.get("snippet", "")))
-    form_feat = str(row.get("form_features", row.get("form", "")))
 
     return (
-        # --- 关键修改：使用英文 Prompt 防止乱码 ---
-        "You are a Phishing Website Detector. Analyze BOTH the TEXT EVIDENCE and the SCREENSHOT.\n"
+        "You are a Phishing Website Detector. Judge primarily by the SCREENSHOT.\n"
+        "The URL and Page Title below are supplementary context.\n"
         "Output a STRICT JSON object only (no explanation, no markdown, no code fences):\n"
         "{\n"
         "  \"is_phish\": 0 or 1,\n"
@@ -81,7 +80,6 @@ def build_prompt(row: dict) -> str:
         "  \"reasons\": [\"Brief reason 1\", \"Brief reason 2\"],\n"
         "  \"used_refs\": []\n"
         "}\n"
-        # --- 关键约束：强制 ASCII 输出 ---
         "CONSTRAINTS:\n"
         "- Write 'reasons' in ENGLISH only.\n"
         "- Use ASCII characters only. NO emojis, NO special symbols.\n"
@@ -89,8 +87,6 @@ def build_prompt(row: dict) -> str:
 
         f"URL: {url}\n"
         f"Page Title: {title}\n"
-        f"Text Snippet: {snippet}\n"
-        f"Form Features: {form_feat}\n"
     )
 
 

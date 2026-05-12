@@ -16,7 +16,13 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
+
+
+def log(msg: str) -> None:
+    """带时间戳的日志输出"""
+    print(f"[{datetime.now():%H:%M:%S}] {msg}")
 
 
 def load_preds(path: Path) -> tuple[list[int], list[int], list[int], int]:
@@ -68,8 +74,8 @@ def load_preds(path: Path) -> tuple[list[int], list[int], list[int], int]:
     return y_true, y_pred, lat, bad
 
 
-def metrics(y_true: list[int], y_pred: list[int]) -> tuple[float, float, float, float]:
-    """binary classification, positive=1"""
+def metrics(y_true: list[int], y_pred: list[int]) -> tuple[float, float, float, float, int, int, int, int]:
+    """binary classification, positive=1. Returns (acc, prec, rec, f1, tp, fp, fn, tn)"""
     tp = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 1)
     tn = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 0)
     fp = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 1)
@@ -79,7 +85,7 @@ def metrics(y_true: list[int], y_pred: list[int]) -> tuple[float, float, float, 
     prec = tp / max(1, (tp + fp))
     rec = tp / max(1, (tp + fn))
     f1 = (2 * prec * rec) / max(1e-12, (prec + rec))
-    return acc, prec, rec, f1
+    return acc, prec, rec, f1, tp, fp, fn, tn
 
 
 def latency_stats(lat: list[int]) -> tuple[float, int, int]:
@@ -148,17 +154,17 @@ def find_predictions_dir() -> Path | None:
                 return p
 
     # 都找不到，打印调试信息
-    print("[ERROR] 找不到 predictions 目录。请确认提交包目录结构正确。")
-    print("尝试过的路径:")
+    log("[ERROR] 找不到 predictions 目录。请确认提交包目录结构正确。")
+    log("尝试过的路径:")
     for p in unique_candidates:
         if p.exists():
-            print(f"  - {p} (存在但缺少必要文件)")
+            log(f"  - {p} (存在但缺少必要文件)")
         else:
-            print(f"  - {p} (不存在)")
-    print("\n期望的结构（任选其一）：")
-    print("  方案1: ./data/predictions/")
-    print("  方案2: ./03_数据文件/data/predictions/")
-    print("  方案3: 01_可执行文件/同级目录下的 03_数据文件/data/predictions/")
+            log(f"  - {p} (不存在)")
+    log("期望的结构（任选其一）：")
+    log("  方案1: ./data/predictions/")
+    log("  方案2: ./03_数据文件/data/predictions/")
+    log("  方案3: 01_可执行文件/同级目录下的 03_数据文件/data/predictions/")
     return None
 
 
@@ -169,12 +175,12 @@ def main() -> int:
     print()
 
     # 查找 predictions 目录
-    print("[1/3] 查找预测文件目录...")
+    log("[1/3] 查找预测文件目录...")
     pred_dir = find_predictions_dir()
     if pred_dir is None:
         input("按回车键退出...")
         return 2
-    print(f"  [OK] 找到: {pred_dir}")
+    log(f"[OK] 找到: {pred_dir}")
     print()
 
     # 定义预测文件（4种方法）
@@ -183,26 +189,27 @@ def main() -> int:
         ("LLM-only", pred_dir / "mix_llmonly_full.jsonl"),
         ("LLM + RAG (NoSelf, clean)", pred_dir / "mix_rag_noself_clean_full.jsonl"),
         ("PhishLLM (MM baseline)", pred_dir / "mix_phishllm_mm_full.jsonl"),
+        ("Qwen-MM (Screenshot)", pred_dir / "mix_qwen_mm_full.jsonl"),
     ]
 
-    print("[2/3] 检查预测文件...")
+    log("[2/3] 检查预测文件...")
     for name, p in files:
         if not p.exists():
-            print(f"  [MISSING] {name}: {p}")
-            print("\n[ERROR] 缺少预测文件")
+            log(f"[MISSING] {name}: {p}")
+            log("[ERROR] 缺少预测文件")
             input("按回车键退出...")
             return 2
         size_kb = p.stat().st_size / 1024
-        print(f"  [OK] {name}: {p.name} ({size_kb:.1f} KB)")
+        log(f"[OK] {name}: {p.name} ({size_kb:.1f} KB)")
     print()
 
-    print("[3/3] 计算并输出对比结果（离线）...")
+    log("[3/3] 计算并输出对比结果...")
     print()
 
     rows = []
     for name, p in files:
         y_true, y_pred, lat, bad = load_preds(p)
-        acc, prec, rec, f1 = metrics(y_true, y_pred)
+        acc, prec, rec, f1, tp, fp, fn, tn = metrics(y_true, y_pred)
         mean_ms, p50, p95 = latency_stats(lat)
 
         rows.append({
@@ -213,6 +220,7 @@ def main() -> int:
             "prec": prec,
             "rec": rec,
             "f1": f1,
+            "tp": tp, "fp": fp, "fn": fn, "tn": tn,
             "mean_ms": mean_ms,
             "p50": p50,
             "p95": p95,
@@ -234,11 +242,21 @@ def main() -> int:
     print("=" * 100)
     print()
 
+    # 输出混淆矩阵
+    print("=" * 75)
+    print("混淆矩阵（TP / FP / FN / TN）")
+    print("=" * 75)
+    for r in rows:
+        print(f"  {r['name']:<22}  TP={r['tp']:>3}  FP={r['fp']:>3}  FN={r['fn']:>3}  TN={r['tn']:>3}")
+    print("=" * 75)
+    print()
+
     # 输出核心结论
     llm = next(r for r in rows if r["name"] == "LLM-only")
     rag = next(r for r in rows if r["name"] == "LLM + RAG (NoSelf, clean)")
     lr = next(r for r in rows if r["name"] == "TF-IDF + LR")
     mm = next(r for r in rows if r["name"] == "PhishLLM (MM baseline)")
+    qwen = next(r for r in rows if r["name"] == "Qwen-MM (Screenshot)")
 
     recall_gain_pp = (rag["rec"] - llm["rec"]) * 100
     f1_gain = rag["f1"] - llm["f1"]
@@ -253,16 +271,20 @@ def main() -> int:
     print(f"  - 注：clean版本移除自引用样本，评估更严格")
     print(f"  - 延迟代价：p50 {llm['p50']}ms -> {rag['p50']}ms ({latency_gain:+.0f}ms)")
     print()
-    print(f"PhishLLM (MM baseline) 结果：")
-    print(f"  - 准确率: {mm['acc']:.4f}")
-    print(f"  - 召回率: {mm['rec']*100:.2f}%")
-    print(f"  - F1分数: {mm['f1']:.4f}")
+    print(f"综合性能最优：PhishLLM (MM baseline) F1={mm['f1']:.4f}，召回率={mm['rec']*100:.2f}%")
+    print(f"  - 准确率={mm['acc']:.4f}  精确率={mm['prec']:.4f}")
+    print(f"  - 延迟: p50={mm['p50']}ms  p95={mm['p95']}ms")
     print()
-    print(f"TF-IDF + LR (传统基线) 仍保持最高 F1={lr['f1']:.4f}")
+    print(f"多模态消融对比：")
+    print(f"  - PhishLLM（全量文本+截图）: rec={mm['rec']*100:.2f}%  f1={mm['f1']:.4f}")
+    print(f"  - Qwen-MM（仅标题+截图）  : rec={qwen['rec']*100:.2f}%  f1={qwen['f1']:.4f}")
+    print(f"  - 说明：文本证据对多模态检测有重要增量贡献")
+    print()
+    print(f"纯文本方法：TF-IDF + LR F1={lr['f1']:.4f}（传统基线），RAG 相比 LLM-only 召回提升显著")
     print("=" * 60)
     print()
-    print("演示完成。")
-    print("说明：本程序为离线演示，使用已生成的预测结果文件，无需 API Key。")
+    log("演示完成。")
+    log("说明：本程序为离线演示，使用已生成的预测结果文件，无需 API Key。")
 
     return 0
 

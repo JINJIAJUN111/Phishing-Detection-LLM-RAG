@@ -1,10 +1,10 @@
 ﻿import matplotlib.pyplot as plt
 
 # 数据（更新为 clean 版本）
-methods = ['TF-IDF + LR', 'LLM-only', 'PhishLLM\n(MM baseline)',
-           'Qwen-MM\n(img+text)', 'LLM + RAG\n(NoSelf, clean)']
-recall = [0.7848, 0.4557, 0.6203, 0.6076, 0.5823]
-f1 = [0.8611, 0.6154, 0.7656, 0.7559, 0.7302]
+methods = ['TF-IDF + LR', 'LLM-only', 'LLM + RAG',
+           'PhishLLM', 'Qwen-MM\n(Screenshot)']
+recall = [0.6329, 0.4557, 0.5823, 0.6203, 0.3291]
+f1 = [0.7407, 0.6154, 0.7302, 0.7656, 0.4952]
 
 # 创建图表
 fig, ax = plt.subplots(figsize=(10, 3.5))
@@ -30,16 +30,24 @@ for i in range(3):
     table[(0, i)].set_facecolor('#4472C4')
     table[(0, i)].set_text_props(weight='bold', color='white', fontsize=11)
 
-# 本方案高亮（最后一行）
-for i in range(3):
-    table[(4, i)].set_facecolor('#D55E00')
-    table[(4, i)].set_text_props(weight='bold', color='white')
+# 本方案高亮（通过方法名查找）
+highlight_row = None  # table row index (0=header, 1=first data row)
+for i, m in enumerate(methods):
+    if m.replace('\n', ' ') == 'LLM + RAG':
+        highlight_row = i + 1  # +1 because table row 0 is the header
+        break
+if highlight_row is not None:
+    for col in range(3):
+        table[(highlight_row, col)].set_facecolor('#D55E00')
+        table[(highlight_row, col)].set_text_props(weight='bold', color='white')
 
-# 交替行底色
-for i in range(1, 5):
-    if i % 2 == 1 and i != 4:
-        for j in range(3):
-            table[(i, j)].set_facecolor('#F5F5F5')
+# 交替行底色（跳过高亮行）
+for row in range(1, len(methods) + 1):
+    if row == highlight_row:
+        continue
+    if row % 2 == 0:
+        for col in range(3):
+            table[(row, col)].set_facecolor('#F5F5F5')
 
 plt.title('Table: Performance Comparison of Phishing Detection Methods',
           fontsize=13, fontweight='bold', pad=15)

@@ -37,21 +37,21 @@ Path("results").mkdir(exist_ok=True)
 methods = [
     "TF-IDF + LR",
     "LLM-only",
-    "LLM + RAG (NoSelf, clean)",
-    "PhishLLM (MM baseline)",
-    "Qwen-MM (img+text)",
+    "LLM + RAG",
+    "PhishLLM",
+    "Qwen-MM (Screenshot)",
 ]
 
-acc = [0.9539, 0.8963, 0.9217, 0.9309, 0.9286]
-prec = [0.9538, 0.9474, 0.9787, 1.0000, 1.0000]
-rec = [0.7848, 0.4557, 0.5823, 0.6203, 0.6076]
-f1 = [0.8611, 0.6154, 0.7302, 0.7656, 0.7559]
+acc = [0.9194, 0.8963, 0.9217, 0.9309, 0.8779]
+prec = [0.8929, 0.9474, 0.9787, 1.0000, 1.0000]
+rec = [0.6329, 0.4557, 0.5823, 0.6203, 0.3291]
+f1 = [0.7407, 0.6154, 0.7302, 0.7656, 0.4952]
 
 # Latency (ms) - only methods that call LLM
-lat_methods = ["LLM-only", "LLM + RAG (NoSelf, clean)", "PhishLLM (MM baseline)", "Qwen-MM (img+text)"]
-lat_mean = [1789.9, 850.1, 2298.5, 2556.5]
-lat_p50 = [1758, 762, 2205, 2450]
-lat_p95 = [2506, 949, 3240, 3380]
+lat_methods = ["LLM-only", "LLM + RAG", "PhishLLM", "Qwen-MM (Screenshot)"]
+lat_mean = [1789.9, 850.1, 2298.5, 844.2]
+lat_p50 = [1758, 762, 2205, 216]
+lat_p95 = [2506, 949, 3240, 3192]
 
 # -----------------------------
 # Colors (academic, colorblind-friendly)
@@ -117,8 +117,6 @@ w2 = 0.35
 bars_r = ax.bar(x - w2 / 2, rec, width=w2, color=C_REC, edgecolor="black", linewidth=1.5, label="Recall")
 bars_f = ax.bar(x + w2 / 2, f1, width=w2, color=C_F1, edgecolor="black", linewidth=1.5, alpha=0.85, label="F1-Score")
 
-ax.axhline(0.8, color="gray", linestyle="--", linewidth=2.0, alpha=0.7, label="0.8 Baseline")
-
 ax.set_xticks(x)
 ax.set_xticklabels(methods, rotation=18, ha="right", fontsize=14)
 ax.set_ylim(0, 1.0)
@@ -138,31 +136,6 @@ for b in bars_f:
     h = b.get_height()
     ax.text(b.get_x() + b.get_width() / 2, h + 0.012, f"{h:.4f}",
             ha="center", va="bottom", fontsize=13, fontweight="bold")
-
-# Annotation: LLM-only -> RAG recall improvement
-try:
-    i_llm = methods.index("LLM-only")
-    i_rag = methods.index("LLM + RAG (NoSelf, clean)")
-    delta_pp = (rec[i_rag] - rec[i_llm]) * 100.0
-
-    y_start = rec[i_llm]
-    y_end = rec[i_rag]
-    y_mid = (y_start + y_end) / 2
-    annotate_y = y_mid if y_mid > 0.6 else 0.55
-
-    ax.annotate(
-        f"+{delta_pp:.2f} pp",
-        xy=(i_rag, y_end),
-        xytext=(i_rag - 0.25, annotate_y - 0.03),
-        arrowprops=dict(arrowstyle="->", color="#D55E00", lw=2.5),
-        bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="black", lw=1.5),
-        color="#D55E00",
-        fontsize=13,
-        fontweight="bold",
-        ha="center"
-    )
-except Exception:
-    pass
 
 fig.subplots_adjust(bottom=0.18)
 fig.tight_layout()
@@ -225,9 +198,9 @@ plt.close(fig)
 # Figure 4: Multimodal Only (PhishLLM vs Qwen-MM) Fair Comparison
 # -----------------------------
 # 使用两行标签，紧凑排版
-mm_methods_short = ["PhishLLM\n(MM baseline)", "Qwen-MM\n(img+text)"]
-mm_rec = [0.6203, 0.6076]
-mm_f1 = [0.7656, 0.7559]
+mm_methods_short = ["PhishLLM\n(Full Text + Screenshot)", "Qwen-MM\n(Title + Screenshot)"]
+mm_rec = [0.6203, 0.3291]
+mm_f1 = [0.7656, 0.4952]
 
 x2 = np.arange(len(mm_methods_short))
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -241,7 +214,7 @@ ax.set_xticks(x2)
 ax.set_xticklabels(mm_methods_short, rotation=0, ha="center", fontsize=14)
 ax.set_ylim(0, 1.0)
 ax.set_ylabel("Score", fontsize=18, fontweight="bold")
-ax.set_title("Figure 4: Multimodal Fair Comparison (Text + Screenshot)", pad=14, fontsize=20, fontweight="bold")
+ax.set_title("Figure 4: Multimodal Ablation (Full Text vs Screenshot-Only)", pad=14, fontsize=20, fontweight="bold")
 
 style_axes(ax)
 ax.legend(loc="upper left", frameon=True, edgecolor="black", fontsize=12)

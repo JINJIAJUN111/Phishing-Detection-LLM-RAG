@@ -7,6 +7,7 @@ import pandas as pd
 from scipy.sparse import hstack, csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
 
 
 def safe_str(x) -> str:
@@ -48,37 +49,52 @@ def main():
     y = df["label"].astype(int).to_numpy()
     texts = [build_text(r) for r in df.to_dict(orient="records")]
 
-    vec = TfidfVectorizer(
-        max_features=args.max_features,
-        ngram_range=(1, 2),
-        min_df=2,
-        lowercase=True,
-    )
-    X_text = vec.fit_transform(texts)
-
+    # Build numerical feature matrix (keep dense for CV indexing)
     def as_num(col, default=0.0):
         s = df.get(col)
         if s is None:
             return np.full(len(df), default, dtype=np.float32)
         return pd.to_numeric(s, errors="coerce").fillna(default).astype(np.float32).to_numpy()
 
-    X_num = np.vstack([
+    X_num = np.column_stack([
         as_num("form_count", 0.0),
         as_num("has_password_input", 0.0),
         as_num("has_email_input", 0.0),
         as_num("external_form_action", 0.0),
         as_num("status_code", 0.0),
         as_num("elapsed_ms", 0.0),
-    ]).T
-    X_num = csr_matrix(X_num)
+    ])
 
-    X = hstack([X_text, X_num], format="csr")
+    # Stratified 5-fold cross-validation (out-of-fold predictions)
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    all_prob = np.zeros(len(df), dtype=np.float64)
 
-    clf = LogisticRegression(C=args.C, max_iter=2000, solver="liblinear")
-    clf.fit(X, y)
+    for train_idx, test_idx in skf.split(texts, y):
+        texts_train = [texts[i] for i in train_idx]
+        texts_test  = [texts[i] for i in test_idx]
 
-    prob = clf.predict_proba(X)[:, 1]
-    pred = (prob >= 0.5).astype(int)
+        vec = TfidfVectorizer(
+            max_features=args.max_features,
+            ngram_range=(1, 2),
+            min_df=2,
+            lowercase=True,
+        )
+        X_text_train = vec.fit_transform(texts_train)
+        X_text_test  = vec.transform(texts_test)
+
+        X_num_train = X_num[train_idx]
+        X_num_test  = X_num[test_idx]
+
+        X_train = hstack([X_text_train, csr_matrix(X_num_train)], format="csr")
+        X_test  = hstack([X_text_test,  csr_matrix(X_num_test)],  format="csr")
+
+        clf = LogisticRegression(C=args.C, max_iter=2000, solver="liblinear", random_state=42)
+        clf.fit(X_train, y[train_idx])
+
+        prob = clf.predict_proba(X_test)[:, 1]
+        all_prob[test_idx] = prob
+
+    pred = (all_prob >= 0.5).astype(int)
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -91,7 +107,7 @@ def main():
                 "label": int(row["label"]),
                 "llm_out": {
                     "is_phish": int(pred[i]),
-                    "confidence": float(prob[i]),
+                    "confidence": float(all_prob[i]),
                     "reasons": ["TF-IDF(text)+structured features LogisticRegression baseline"],
                     "used_refs": [],
                     "_latency_ms": 0,
