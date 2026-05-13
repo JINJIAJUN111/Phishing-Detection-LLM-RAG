@@ -165,6 +165,7 @@ python draw_table.py
 ```powershell
 # 启动靶场容器
 docker run --name phishing-lab --rm -d -p 8080:8080 `
+  -v "${PWD}\lab-docker\nginx.conf:/etc/nginx/nginx.conf:ro" `
   -v "${PWD}\lab-docker\site:/usr/share/nginx/html:ro" `
   -v "${PWD}\lab-docker\logs:/var/log/nginx" `
   nginx:alpine
